@@ -1,0 +1,47 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyd
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# Environment Variables & Secrets
+.env
+.env.*
+!.env.example
+
+# Local Database Files & Locks
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# Runtime Evidence Uploads & Generated PDF Reports
+data/uploads/*
+!data/uploads/.gitkeep
+data/reports/*
+!data/reports/.gitkeep
+# Agent / Harness Rules
+.agents/
+
+# Operating System & IDE Artifacts
+.DS_Store
+Thumbs.db
+ehthumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Vercel Runtime & Build Cache
+.vercel/
+
+# Logs
+*.log

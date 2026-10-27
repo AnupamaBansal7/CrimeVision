@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CrimeVision AI – Multimodal Forensic Analysis Platform</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+</head>
+<body>
+
+  <!-- Top Tactical Header Bar -->
+  <header class="forensic-header">
+    <div class="brand-section">
+      <div class="brand-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M12 2a10 10 0 0 1 10 10"></path>
+          <path d="m4.93 4.93 4.24 4.24"></path>
+          <circle cx="12" cy="12" r="2"></circle>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1>
+          CRIMEVISION AI
+          <span class="badge badge-modality" style="font-size: 0.65rem;">ENTERPRISE FORENSICS</span>
+        </h1>
+        <p>Multimodal Forensic Intelligence, Timeline Fusion & Probable Cause Engine</p>
+      </div>
+    </div>
+
+    <div class="header-status-group">
+      <div class="status-pill">
+        <div class="pulse-dot"></div>
+        <span style="color: #fca5a5; font-size: 0.72rem; letter-spacing: 0.05em;">LIVE EVIDENCE STREAM</span>
+      </div>
+
+      <div style="text-align: right;">
+        <div class="mono" style="font-size: 0.78rem; font-weight: 700; color: var(--accent-cyan);">CASE: CRV-2026-8841</div>
+        <div style="font-size: 0.7rem; color: var(--text-secondary);">Det. Marcus Vance • MPD-7492</div>
+      </div>
+
+      <div class="ai-engine-chip">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+        </svg>
+        <span>Claude 3.5 Sonnet</span>
+      </div>
+
+      <button class="btn-tactical" onclick="seedDemoCase()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 3v18M3 12h18"></path>
+        </svg>
+        Load Full Demo Case
+      </button>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <div class="tabs-container">
+    <nav class="nav-tabs">
+      <button class="tab-btn active" data-tab="overview">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+        Case Overview & Summary
+      </button>
+      <button class="tab-btn" data-tab="intake">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+        Evidence Intake & Studio
+      </button>
+      <button class="tab-btn" data-tab="timeline">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Chronological Timeline
+      </button>
+      <button class="tab-btn" data-tab="chat">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        AI Forensic Copilot
+      </button>
+      <button class="tab-btn" data-tab="export">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        PDF Court Dossier
+      </button>
+    </nav>
+  </div>
+
+  <!-- Main Content Viewport -->
+  <main class="main-content">
+
+    <!-- ========================================== -->
+    <!-- TAB 1: CASE OVERVIEW & EXECUTIVE SUMMARY  -->
+    <!-- ========================================== -->
+    <section id="tab-overview" class="tab-panel active">
+      <!-- Dossier Banner Card -->
+      <div class="forensic-card dossier-banner">
+        <div>
+          <div class="dossier-title-row">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+            <span id="case-title" class="dossier-title">Armed Commercial Robbery - Central Metro Express</span>
+            <span id="case-threat-badge" class="badge badge-critical">CRITICAL • 94/100</span>
+          </div>
+          <div id="case-meta" class="dossier-meta mono">INCIDENT: 2026-10-24 22:45:00 | LOCATION: Sector 4B, 1422 North Meridian Ave | JURISDICTION: Metro Police Forensic Investigation Unit</div>
+        </div>
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+          <button class="btn-tactical btn-primary" onclick="triggerMultimodalFusion()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+            Run Multimodal Fusion
+          </button>
+          <button class="btn-tactical btn-danger" onclick="triggerPdfExport()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            Generate PDF Dossier
+          </button>
+        </div>
+      </div>
+
+      <!-- 4 Forensic KPI Cards -->
+      <div class="kpi-grid">
+        <div class="forensic-card kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-label">Evidence Exhibits</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+          </div>
+          <div>
+            <div id="kpi-exhibits" class="kpi-value mono">3 Logged</div>
+            <div class="kpi-subtitle">Optical, Acoustic & Video Feeds</div>
+          </div>
+        </div>
+
+        <div class="forensic-card kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-label">Crime Classification</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-amber)" stroke-width="2"><path d="m14 13-7.5 7.5a2.12 2.12 0 0 1-3-3L11 10"/><path d="m16 16 6-6"/><path d="m8 8 6-6"/><path d="m9 7 8 8"/></svg>
+          </div>
+          <div>
+            <div id="kpi-classification" class="kpi-value" style="font-size: 1.25rem;">Armed Robbery</div>
+            <div id="kpi-penal" class="kpi-subtitle mono" style="color: var(--accent-amber);">Penal Code § 211</div>
+          </div>
+        </div>
+
+        <div class="forensic-card kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-label">Threat Matrix Level</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-red)" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+          </div>
+          <div>
+            <div id="kpi-threat" class="kpi-value mono" style="color: var(--accent-red);">CRITICAL (94/100)</div>
+            <div class="kpi-subtitle">Armed Coercion & Lethal Risk</div>
+          </div>
+        </div>
+
+        <div class="forensic-card kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-label">Chain of Custody</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-emerald)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div>
+            <div class="kpi-value mono" style="color: var(--accent-emerald);">100% VALIDATED</div>
+            <div class="kpi-subtitle">Cryptographic SHA-256 Ledger</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Narrative & Probable Cause Split -->
+      <div class="grid-2col">
+        <div class="forensic-card">
+          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg>
+            <h3 style="font-size: 1rem; font-weight: 700; color: #fff;">Executive Forensic Narrative</h3>
+          </div>
+          <p id="case-narrative" style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6; margin-bottom: 1.25rem;">
+            Multi-subject aggravated commercial armed robbery at Central Metro Express. Evidence exhibits firearm brandishing, verbal threats to staff, safe breach, and rapid getaway in a dark sedan.
+          </p>
+
+          <div style="border-top: 1px solid rgba(51, 65, 85, 0.6); padding-top: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <span style="font-size: 0.72rem; font-weight: 800; letter-spacing: 0.08em; color: var(--accent-cyan);">SWORN PROBABLE CAUSE AFFIDAVIT DRAFT:</span>
+              <button class="btn-tactical" style="padding: 0.2rem 0.6rem; font-size: 0.7rem;" onclick="copyAffidavit()">Copy Affidavit</button>
+            </div>
+            <p id="case-affidavit" style="font-size: 0.8rem; color: var(--text-muted); font-style: italic; line-height: 1.6;">
+              Forensic multimodal surveillance analysis confirms matching facial structure, dark clothing with reflective accents, recorded verbal demands for cashier safe codes, and video telemetry corroborating weapon presentation at 22:46:12.
+            </p>
+          </div>
+        </div>
+
+        <div class="forensic-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <h3 style="font-size: 1rem; font-weight: 700; color: #fff; margin-bottom: 0.4rem;">Investigator Quick Actions</h3>
+            <p style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 1.25rem;">Direct triage shortcuts to evidence intake, copilot, and court filing export.</p>
+
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+              <button class="btn-tactical" style="width: 100%; justify-content: flex-start;" onclick="switchTab('intake')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                Intake New Forensic Evidence
+              </button>
+              <button class="btn-tactical" style="width: 100%; justify-content: flex-start;" onclick="switchTab('timeline')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Inspect Synchronized Timeline
+              </button>
+              <button class="btn-tactical" style="width: 100%; justify-content: flex-start; border-color: var(--accent-purple); color: #d8b4fe;" onclick="switchTab('chat')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                Consult Forensic AI Copilot
+              </button>
+              <button class="btn-tactical btn-danger" style="width: 100%; justify-content: flex-start;" onclick="triggerPdfExport()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                Download Official Court Dossier
+              </button>
+            </div>
+          </div>
+
+          <div style="padding-top: 1rem; border-top: 1px solid rgba(51, 65, 85, 0.6); margin-top: 1rem;">
+            <div style="font-size: 0.72rem; color: var(--text-muted); text-align: center;">Vercel Serverless & Python ASGI Compliant</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Exhibits Grid Section -->
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h3 style="font-size: 1.1rem; font-weight: 800; color: #fff;">Active Evidence Repository</h3>
+          <span style="font-size: 0.75rem; color: var(--text-secondary);">Cryptographically registered exhibits</span>
+        </div>
+        <div id="evidence-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem;">
+          <!-- Injected via JavaScript -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 2: EVIDENCE INTAKE & STUDIO           -->
+    <!-- ========================================== -->
+    <section id="tab-intake" class="tab-panel">
+      <div class="studio-tabs">
+        <button class="studio-tab-btn active" data-studio="image">Optical / Image Studio</button>
+        <button class="studio-tab-btn" data-studio="audio">Acoustic / Audio Studio</button>
+        <button class="studio-tab-btn" data-studio="video">Surveillance CCTV / Video Studio</button>
+      </div>
+
+      <!-- Studio Panel 1: Image -->
+      <div id="studio-image" class="studio-panel">
+        <div class="forensic-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <div>
+              <h3 style="font-size: 1.1rem; font-weight: 800; color: #fff;">Image Forensic Studio</h3>
+              <p style="font-size: 0.78rem; color: var(--text-secondary);">Weapon detection, person cataloging, facial orientation, and SHA-256 seal.</p>
+            </div>
+            <button class="btn-tactical" onclick="analyzeImage('sample_surveillance_cam02.jpg')">
+              Load Pre-Bundled Surveillance Sample
+            </button>
+          </div>
+
+          <div class="dropzone" onclick="document.getElementById('image-upload-input').click()">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="1.5" style="margin-bottom: 0.5rem;"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+            <div style="font-weight: 700; font-size: 0.95rem; color: #fff;">Click to upload forensic surveillance frame</div>
+            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">Supports JPEG, PNG, WEBP (Max 25MB)</div>
+            <input type="file" id="image-upload-input" accept="image/*" style="display: none;" onchange="if(this.files[0]) analyzeImage(null, this.files[0])">
+          </div>
+
+          <div style="margin-top: 1.5rem; text-align: center;">
+            <img src="/samples/sample_surveillance_cam02.jpg" alt="Surveillance Preview" style="max-height: 240px; border-radius: 8px; border: 1px solid var(--border-subtle); display: inline-block;">
+            <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.4rem;" class="mono">PREVIEW: samples/sample_surveillance_cam02.jpg (Sector 4B Cam-02)</div>
+          </div>
+
+          <div id="image-results" style="display: none;"></div>
+        </div>
+      </div>
+
+      <!-- Studio Panel 2: Audio -->
+      <div id="studio-audio" class="studio-panel" style="display: none;">
+        <div class="forensic-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <div>
+              <h3 style="font-size: 1.1rem; font-weight: 800; color: #fff;">Acoustic Diarization Studio</h3>
+              <p style="font-size: 0.78rem; color: var(--text-secondary);">Speaker separation, vocal panic stress, verbal threat extraction, and 911 dispatch sync.</p>
+            </div>
+            <button class="btn-tactical" onclick="analyzeAudio('dispatch_counter_mic01.wav')">
+              Load Pre-Bundled Dispatch Audio Sample
+            </button>
+          </div>
+
+          <div class="dropzone" onclick="document.getElementById('audio-upload-input').click()">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--accent-amber)" stroke-width="1.5" style="margin-bottom: 0.5rem;"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+            <div style="font-weight: 700; font-size: 0.95rem; color: #fff;">Click to upload forensic audio recording</div>
+            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">Supports WAV, MP3, M4A, FLAC</div>
+            <input type="file" id="audio-upload-input" accept="audio/*" style="display: none;" onchange="if(this.files[0]) analyzeAudio(null, this.files[0])">
+          </div>
+
+          <div style="margin-top: 1.5rem; text-align: center;">
+            <audio controls style="width: 100%; max-width: 500px;">
+              <source src="/samples/dispatch_counter_mic01.wav" type="audio/wav">
+              Your browser does not support audio playback.
+            </audio>
+            <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.4rem;" class="mono">PREVIEW: samples/dispatch_counter_mic01.wav (Counter Mic 01)</div>
+          </div>
+
+          <div id="audio-results" style="display: none;"></div>
+        </div>
+      </div>
+
+      <!-- Studio Panel 3: Video -->
+      <div id="studio-video" class="studio-panel" style="display: none;">
+        <div class="forensic-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <div>
+              <h3 style="font-size: 1.1rem; font-weight: 800; color: #fff;">Surveillance CCTV Telemetry Studio</h3>
+              <p style="font-size: 0.78rem; color: var(--text-secondary);">Keyframe decomposition, getaway corridor telemetry, vehicle tracking, and egress mapping.</p>
+            </div>
+            <button class="btn-tactical" onclick="analyzeVideo('cctv_exterior_getaway.mp4')">
+              Load Pre-Bundled CCTV Video Sample
+            </button>
+          </div>
+
+          <div class="dropzone" onclick="document.getElementById('video-upload-input').click()">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="1.5" style="margin-bottom: 0.5rem;"><polygon points="23 7 16 12 23 17 23 7"/><rect width="15" height="14" x="1" y="5" rx="2" ry="2"/></svg>
+            <div style="font-weight: 700; font-size: 0.95rem; color: #fff;">Click to upload CCTV surveillance video</div>
+            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">Supports MP4, MOV, MKV, AVI (Max 50MB)</div>
+            <input type="file" id="video-upload-input" accept="video/*" style="display: none;" onchange="if(this.files[0]) analyzeVideo(null, this.files[0])">
+          </div>
+
+          <div style="margin-top: 1.5rem; text-align: center;">
+            <video controls style="max-height: 260px; border-radius: 8px; border: 1px solid var(--border-subtle); display: inline-block;">
+              <source src="/samples/cctv_exterior_getaway.mp4" type="video/mp4">
+              Your browser does not support video playback.
+            </video>
+            <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.4rem;" class="mono">PREVIEW: samples/cctv_exterior_getaway.mp4 (Exterior Egress Feed)</div>
+          </div>
+
+          <div id="video-results" style="display: none;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 3: CHRONOLOGICAL FORENSIC TIMELINE    -->
+    <!-- ========================================== -->
+    <section id="tab-timeline" class="tab-panel">
+      <div class="forensic-card" style="margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <h3 style="font-size: 1.1rem; font-weight: 800; color: #fff;">Chronological Forensic Timeline</h3>
+            <p style="font-size: 0.78rem; color: var(--text-secondary);">Cross-modal synchronization correlating visual events with acoustic spikes and telemetry.</p>
+          </div>
+          <div class="timeline-filters">
+            <button class="filter-btn active" data-filter="ALL">ALL MODALITIES</button>
+            <button class="filter-btn" data-filter="IMAGE">IMAGE ONLY</button>
+            <button class="filter-btn" data-filter="AUDIO">AUDIO ONLY</button>
+            <button class="filter-btn" data-filter="VIDEO">VIDEO ONLY</button>
+            <button class="filter-btn" data-filter="FUSION">FUSION SYNTHESIS</button>
+          </div>
+        </div>
+
+      <div id="timeline-feed" class="timeline-feed">
+        <!-- Injected via JavaScript -->
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 4: FORENSIC COPILOT CHAT ASSISTANT    -->
+    <!-- ========================================== -->
+    <section id="tab-chat" class="tab-panel">
+      <div class="forensic-card chat-container">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.85rem; border-bottom: 1px solid rgba(51, 65, 85, 0.6);">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-purple)" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <h3 style="font-size: 1rem; font-weight: 700; color: #fff;">Forensic Intelligence Copilot</h3>
+            <span class="badge badge-purple" style="font-size: 0.65rem;">CLAUDE 3.5 ACTIVE</span>
+          </div>
+          <span style="font-size: 0.72rem; color: var(--text-muted);">Sworn Case Investigator Dialogue</span>
+        </div>
+
+        <div style="padding: 0.75rem 0 0;">
+          <div class="quick-prompts">
+            <button class="quick-prompt-btn" onclick="sendQuickPrompt('What weapons were detected across all evidence exhibits?')">What weapons were detected?</button>
+            <button class="quick-prompt-btn" onclick="sendQuickPrompt('Summarize suspect getaway telemetry, vehicle color, and flight path.')">Summarize getaway vehicle & flight path</button>
+            <button class="quick-prompt-btn" onclick="sendQuickPrompt('Draft probable cause justification for search and arrest warrants.')">Draft probable cause justification</button>
+            <button class="quick-prompt-btn" onclick="sendQuickPrompt('Cross-reference cashier statements with surveillance video timestamps.')">Cross-reference statements with video</button>
+          </div>
+        </div>
+
+        <div id="chat-messages" class="chat-messages">
+          <div class="chat-bubble chat-bubble-bot">
+            Welcome, Detective. I am your multimodal forensic intelligence co-pilot. I have indexed Case <strong>CRV-2026-8841</strong> (Armed Commercial Robbery at Central Metro Express). You may ask questions regarding suspect attire, weapon classifications, acoustic stress markers, vehicle telemetry, or probable cause affidavit drafting.
+          </div>
+        </div>
+
+        <div class="chat-input-row">
+          <input type="text" id="chat-input" class="chat-input" placeholder="Query forensic case evidence, ask about suspect attire, weapons, or escape telemetry...">
+          <button id="chat-send-btn" class="btn-tactical btn-primary" style="padding: 0 1.25rem;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            Send
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 5: OFFICIAL FORENSIC PDF DOSSIER      -->
+    <!-- ========================================== -->
+    <section id="tab-export" class="tab-panel">
+      <div class="forensic-card" style="max-width: 800px; margin: 0 auto; text-align: center; padding: 3rem 2rem;">
+        <div style="width: 64px; height: 64px; margin: 0 auto 1.25rem; border-radius: 50%; background: rgba(239, 68, 68, 0.15); border: 2px solid rgba(239, 68, 68, 0.4); display: flex; align-items: center; justify-content: center; color: var(--accent-red);">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg>
+        </div>
+
+        <h2 style="font-size: 1.4rem; font-weight: 800; color: #fff; margin-bottom: 0.5rem;">Official Court-Admissible Multimodal Forensic Report</h2>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); max-width: 600px; margin: 0 auto 2rem; line-height: 1.6;">
+          Generates a certified digital forensic case report using ReportLab with SHA-256 cryptographic hashes, weapon lethality indices, acoustic diarization transcripts, chronological event timeline, and sworn probable cause affidavit.
+        </p>
+
+        <div class="forensic-card" style="background: rgba(15, 23, 42, 0.95); margin-bottom: 2rem; text-align: left; padding: 1.25rem;">
+          <div style="font-size: 0.75rem; font-weight: 700; color: var(--accent-cyan); text-transform: uppercase; margin-bottom: 0.5rem;">Dossier Specifications:</div>
+          <div style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.6;">
+            • Case Identifier: <strong>CRV-2026-8841</strong> (Central Metro Express)<br>
+            • Primary Statutory Charge: <strong>Penal Code § 211 - Robbery with Deadly Weapon</strong><br>
+            • Lead Forensic Examiner: <strong>Det. Marcus Vance (Badge MPD-7492)</strong><br>
+            • Custody Security: <strong>SHA-256 Hash Verification on all optical, acoustic, and video exhibits</strong><br>
+            • Document Format: <strong>High-Resolution Vector PDF (ReportLab Engine)</strong>
+          </div>
+        </div>
+
+        <button class="btn-tactical btn-danger" style="padding: 0.85rem 2.5rem; font-size: 0.95rem;" onclick="triggerPdfExport()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+          Download Official Forensic PDF Report
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Notification Toast -->
+  <div id="toast"></div>
+
+  <!-- Client Application Controller -->
+  <script src="/app.js"></script>
+</body>
+</html>
