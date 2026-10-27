@@ -8,7 +8,8 @@ import httpx
 from fastapi import FastAPI, Request, Response, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
+from dashboard_bundle import get_dashboard_html, CSS_CONTENT, JS_CONTENT
 
 # Add project root to sys.path
 BASE_DIR = Path(__file__).resolve().parent
@@ -56,27 +57,58 @@ app.add_middleware(
 if SAMPLES_DIR.exists():
     app.mount("/samples", StaticFiles(directory=str(SAMPLES_DIR)), name="samples")
 
-# Mount public assets and direct asset routes
+# Static assets & direct CSS/JS routes with in-memory fallbacks
+@app.get("/styles.css", include_in_schema=False)
+async def serve_styles():
+    css_file = PUBLIC_DIR / "styles.css"
+    if css_file.exists():
+        return FileResponse(str(css_file), media_type="text/css")
+    return Response(content=CSS_CONTENT, media_type="text/css")
+
+@app.get("/app.js", include_in_schema=False)
+async def serve_app_js():
+    js_file = PUBLIC_DIR / "app.js"
+    if js_file.exists():
+        return FileResponse(str(js_file), media_type="application/javascript")
+    return Response(content=JS_CONTENT, media_type="application/javascript")
+
 if PUBLIC_DIR.exists():
-    @app.get("/styles.css", include_in_schema=False)
-    async def serve_styles():
-        return FileResponse(str(PUBLIC_DIR / "styles.css"), media_type="text/css")
-
-    @app.get("/app.js", include_in_schema=False)
-    async def serve_app_js():
-        return FileResponse(str(PUBLIC_DIR / "app.js"), media_type="application/javascript")
-
     app.mount("/static", StaticFiles(directory=str(PUBLIC_DIR)), name="public")
 
-# Root dashboard view
-@app.get("/", tags=["Dashboard"])
+# Dedicated sample media route with disk + internal backend fallback
+@app.get("/samples/{filename}", tags=["Samples"])
+async def serve_sample_media(filename: str):
+    for candidate in [SAMPLES_DIR / filename, BASE_DIR / "samples" / filename, Path("samples") / filename]:
+        if candidate.exists():
+            return FileResponse(str(candidate))
+    if BACKEND_URL:
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                r = await client.get(f"{BACKEND_URL}/samples/{filename}")
+                if r.status_code == 200:
+                    media_type = r.headers.get("content-type", "application/octet-stream")
+                    return Response(content=r.content, status_code=200, media_type=media_type)
+        except Exception:
+            pass
+    raise HTTPException(status_code=404, detail=f"Sample file '{filename}' not found")
+
+# Root dashboard view - Guaranteed to return the interactive forensic UI
+@app.get("/", response_class=HTMLResponse, tags=["Dashboard"])
 async def serve_root(request: Request):
-    index_file = PUBLIC_DIR / "index.html"
     accept_header = request.headers.get("accept", "")
-    if index_file.exists() and "text/html" in accept_header:
-        return FileResponse(str(index_file))
-    elif index_file.exists() and not accept_header.startswith("application/json"):
-        return FileResponse(str(index_file))
+    # Return JSON only if explicitly requested without text/html
+    if "application/json" in accept_header and "text/html" not in accept_header:
+        return JSONResponse({
+            "service": "app",
+            "platform": "CrimeVision AI",
+            "status": "ONLINE",
+            "backend_binding": bool(BACKEND_URL),
+            "docs": "/docs"
+        })
+    return HTMLResponse(content=get_dashboard_html(), status_code=200, media_type="text/html")
+
+@app.get("/status", tags=["Status"])
+async def serve_status():
     return {
         "service": "app",
         "platform": "CrimeVision AI",
