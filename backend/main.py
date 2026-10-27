@@ -3,13 +3,23 @@ import sys
 from pathlib import Path
 from contextlib import asynccontextmanager
 
-# Ensure both direct and package imports work when service root is 'backend' or '.'
+# When deployed as an isolated Vercel service with root 'backend', ensure 'backend' package resolves
 CURRENT_DIR = Path(__file__).resolve().parent
 PARENT_DIR = CURRENT_DIR.parent
+
+if "backend" not in sys.modules:
+    try:
+        import backend
+    except ImportError:
+        import types
+        _pkg = types.ModuleType("backend")
+        _pkg.__path__ = [str(CURRENT_DIR)]
+        _pkg.__file__ = str(CURRENT_DIR / "__init__.py")
+        sys.modules["backend"] = _pkg
+
 for p in [str(CURRENT_DIR), str(PARENT_DIR)]:
     if p not in sys.path:
         sys.path.insert(0, p)
-
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles

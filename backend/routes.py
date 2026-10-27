@@ -1,8 +1,23 @@
 import os
+import sys
+import types
 import re
 import datetime
 import shutil
 import json
+from pathlib import Path
+
+_cur = Path(__file__).resolve().parent
+if "backend" not in sys.modules:
+    try:
+        import backend
+    except ImportError:
+        _pkg = types.ModuleType("backend")
+        _pkg.__path__ = [str(_cur)]
+        _pkg.__file__ = str(_cur / "__init__.py")
+        sys.modules["backend"] = _pkg
+if str(_cur) not in sys.path:
+    sys.path.insert(0, str(_cur))
 from pathlib import Path
 from typing import Optional, List
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Query

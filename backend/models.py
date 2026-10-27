@@ -1,3 +1,20 @@
+import os
+import sys
+import types
+from pathlib import Path
+
+_cur = Path(__file__).resolve().parent
+if "backend" not in sys.modules:
+    try:
+        import backend
+    except ImportError:
+        _pkg = types.ModuleType("backend")
+        _pkg.__path__ = [str(_cur)]
+        _pkg.__file__ = str(_cur / "__init__.py")
+        sys.modules["backend"] = _pkg
+if str(_cur) not in sys.path:
+    sys.path.insert(0, str(_cur))
+
 import datetime
 import json
 import hashlib
@@ -176,8 +193,7 @@ def get_or_create_case(case_id: str = None) -> Case:
             location=DEFAULT_CASE["location"]
         )
 
-# Auto-initialize database on module load so serverless execution never hits missing tables
-init_db()
+
 
 # ==========================================
 # Pydantic Schemas for API Serialization
@@ -292,3 +308,6 @@ class ChatQueryResponse(BaseModel):
     response: str
     citations: List[str] = []
     suggested_followups: List[str] = []
+
+# Auto-initialize database on module load so serverless execution never hits missing tables
+init_db()
