@@ -104,7 +104,30 @@ class MultimodalFusionEngine:
             "Canvas businesses along Meridian Ave for exterior high-resolution camera angles to capture unmasked driver."
         ]
 
-        probable_cause = (
+        gemini_affidavit = None
+        try:
+            from backend.services.claude_service import get_gemini_api_key, call_gemini_generate
+            if get_gemini_api_key():
+                affidavit_prompt = (
+                    f"Draft a formal, court-admissible Sworn Probable Cause Affidavit for an arrest warrant.\n"
+                    f"Case: {case.title} (ID: {case.case_id})\n"
+                    f"Date: {case.incident_date}\n"
+                    f"Location: {case.location}\n"
+                    f"Primary Statutory Offense: {classification.primary_crime} ({classification.statutory_code})\n"
+                    f"Evidence Findings: {all_text_corpus[:2500]}\n"
+                    f"Synthesize perpetrator actions, weapon presentation, acoustic verbal coercion, and getaway flight path into an authoritative 2-3 paragraph affidavit statement."
+                )
+                res = call_gemini_generate(
+                    prompt=affidavit_prompt,
+                    json_mode=False,
+                    system_instruction="You are a Senior Detective drafting a sworn probable cause affidavit for court submission."
+                )
+                if res and "text" in res and len(res["text"]) > 50:
+                    gemini_affidavit = res["text"].strip()
+        except Exception as e:
+            print(f"[Fusion GenAI Notice] Affidavit generation fallback: {e}")
+
+        probable_cause = gemini_affidavit or (
             f"On {case.incident_date}, forensic multimodal surveillance and acoustic diarization established that two perpetrators "
             f"committed {classification.primary_crime} in violation of {classification.statutory_code}. "
             f"Video and photographic telemetry confirms an armed suspect leveled a firearm at retail staff, "

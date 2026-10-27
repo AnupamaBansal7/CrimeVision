@@ -73,16 +73,27 @@ CrimeVision/
 pip install -r requirements.txt
 ```
 
-### 2. (Optional) Configure Anthropic API Key
+### 2. Configure Generative AI API Key (Google Gemini or Anthropic Claude)
+
+**Option A: Google Gemini 1.5 Flash (Recommended - Free Tier & Native Audio/Video Multimodal)**
+Get your free key from [Google AI Studio](https://aistudio.google.com/):
 ```bash
 # Windows PowerShell
-$env:ANTHROPIC_API_KEY = "your-api-key-here"
+$env:GEMINI_API_KEY = "AIzaSyYourGeminiApiKeyHere"
 
 # Linux / Mac
-export ANTHROPIC_API_KEY="your-api-key-here"
+export GEMINI_API_KEY="AIzaSyYourGeminiApiKeyHere"
+```
+
+**Option B: Anthropic Claude 3.5 Sonnet**
+```bash
+# Windows PowerShell
+$env:ANTHROPIC_API_KEY = "sk-ant-api03-your-key-here"
+
+# Linux / Mac
+export ANTHROPIC_API_KEY="sk-ant-api03-your-key-here"
 ```
 > *Note:* If no API key is provided, CrimeVision automatically operates in high-fidelity mock fallback mode so all features work out of the box!
-
 ### 3. Launch Platform Locally
 ```bash
 # Standard Web Dashboard + FastAPI Server (Matches Vercel Architecture)

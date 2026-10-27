@@ -6,8 +6,12 @@ import re
 from pathlib import Path
 from typing import Dict, Any, Optional
 
+import httpx
 import anthropic
-from backend.config import ANTHROPIC_API_KEY, CLAUDE_MODEL
+from backend.config import (
+    GEMINI_API_KEY, GEMINI_MODEL,
+    ANTHROPIC_API_KEY, CLAUDE_MODEL
+)
 from backend.models import (
     ImageAnalysisResponse, PersonEntity, WeaponItem, DetectedObject,
     AudioAnalysisResponse, AudioTranscriptSegment,
@@ -36,6 +40,83 @@ def get_claude_client() -> Optional[anthropic.Anthropic]:
             return None
     return None
 
+def get_gemini_api_key() -> str:
+    return os.getenv("GEMINI_API_KEY", os.getenv("GOOGLE_API_KEY", GEMINI_API_KEY)).strip()
+
+def call_gemini_generate(
+    prompt: str,
+    media_path: Optional[str] = None,
+    media_mime_type: Optional[str] = None,
+    json_mode: bool = True,
+    system_instruction: Optional[str] = None
+) -> Optional[Dict[str, Any]]:
+    """Invokes Google Gemini 1.5 Flash API with native multimodal inline data (Image, Audio, Video)."""
+    api_key = get_gemini_api_key()
+    if not api_key or api_key.startswith("AIzaSy-placeholder") or len(api_key) < 10:
+        return None
+
+    model = os.getenv("GEMINI_MODEL", GEMINI_MODEL).strip() or "gemini-1.5-flash"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+
+    parts = []
+    if media_path and os.path.exists(media_path) and media_mime_type:
+        try:
+            with open(media_path, "rb") as mf:
+                raw_bytes = mf.read()
+            if len(raw_bytes) <= 20 * 1024 * 1024:
+                b64_data = base64.b64encode(raw_bytes).decode("utf-8")
+                parts.append({
+                    "inline_data": {
+                        "mime_type": media_mime_type,
+                        "data": b64_data
+                    }
+                })
+            else:
+                print(f"[Gemini] Media file exceeds 20MB inline limit ({len(raw_bytes)} bytes)")
+        except Exception as e:
+            print(f"[Gemini] Error encoding media '{media_path}': {e}")
+
+    parts.append({"text": prompt})
+
+    payload: Dict[str, Any] = {
+        "contents": [{"parts": parts}],
+        "generationConfig": {
+            "temperature": 0.2
+        }
+    }
+
+    if system_instruction:
+        payload["system_instruction"] = {
+            "parts": [{"text": system_instruction}]
+        }
+
+    if json_mode:
+        payload["generationConfig"]["response_mime_type"] = "application/json"
+
+    try:
+        with httpx.Client(timeout=60.0) as client:
+            resp = client.post(url, json=payload)
+            if resp.status_code == 200:
+                data = resp.json()
+                candidates = data.get("candidates", [])
+                if candidates:
+                    content = candidates[0].get("content", {})
+                    resp_parts = content.get("parts", [])
+                    if resp_parts:
+                        text_output = resp_parts[0].get("text", "")
+                        if json_mode:
+                            match = re.search(r'\{.*\}', text_output, re.DOTALL)
+                            if match:
+                                return json.loads(match.group(0))
+                            return json.loads(text_output)
+                        return {"text": text_output}
+            else:
+                print(f"[Gemini API Notice] Status {resp.status_code}: {resp.text[:200]}")
+    except Exception as e:
+        print(f"[Gemini API Notice] Request error: {e}")
+
+    return None
+
 
 class ForensicAIAnalyzer:
     """Multimodal forensic AI engine powered by Claude 3.5 Sonnet with resilient fallback."""
@@ -43,8 +124,48 @@ class ForensicAIAnalyzer:
     @classmethod
     def analyze_image(cls, file_path: str, filename: str) -> ImageAnalysisResponse:
         sha256_hash = compute_file_sha256(file_path)
-        client = get_claude_client()
 
+        prompt = (
+            "You are a Senior Digital Forensic AI Examiner for Law Enforcement. "
+            "Analyze this forensic surveillance evidence frame in extreme detail. "
+            "Return ONLY valid JSON with keys: "
+            "people_count (int), "
+            "persons (list of objects with label, role_estimate, clothing, actions, facial_features), "
+            "weapons_detected (list of objects with weapon_type, confidence, description, lethality_rating), "
+            "cataloged_objects (list of objects with label, confidence, location_in_frame, forensic_relevance), "
+            "threat_score (0 to 100), "
+            "threat_level ('CRITICAL'|'HIGH'|'ELEVATED'|'LOW'), "
+            "scene_description (detailed string), "
+            "lighting_and_environment (string), "
+            "forensic_tags (list of strings)."
+        )
+
+        # 1. Try Google Gemini Vision (Primary Multimodal Engine)
+        gemini_key = get_gemini_api_key()
+        if gemini_key and os.path.exists(file_path):
+            media_type = "image/jpeg"
+            if filename.lower().endswith(".png"):
+                media_type = "image/png"
+            elif filename.lower().endswith(".webp"):
+                media_type = "image/webp"
+
+            parsed = call_gemini_generate(
+                prompt=prompt,
+                media_path=file_path,
+                media_mime_type=media_type,
+                json_mode=True,
+                system_instruction="You are a Senior Digital Forensic AI Examiner for Law Enforcement."
+            )
+            if parsed:
+                try:
+                    parsed["filename"] = filename
+                    parsed["sha256_hash"] = sha256_hash
+                    return ImageAnalysisResponse(**parsed)
+                except Exception as e:
+                    print(f"[ForensicAI] Gemini Image parse warning: {e}")
+
+        # 2. Try Anthropic Claude Vision (Secondary Fallback)
+        client = get_claude_client()
         if client and os.path.exists(file_path):
             try:
                 with open(file_path, "rb") as img_file:
@@ -55,21 +176,6 @@ class ForensicAIAnalyzer:
                     media_type = "image/png"
                 elif filename.lower().endswith(".webp"):
                     media_type = "image/webp"
-
-                prompt = (
-                    "You are a Senior Digital Forensic AI Examiner for Law Enforcement. "
-                    "Analyze this forensic surveillance evidence frame in extreme detail. "
-                    "Return ONLY valid JSON with keys: "
-                    "people_count (int), "
-                    "persons (list of objects with label, role_estimate, clothing, actions, facial_features), "
-                    "weapons_detected (list of objects with weapon_type, confidence, description, lethality_rating), "
-                    "cataloged_objects (list of objects with label, confidence, location_in_frame, forensic_relevance), "
-                    "threat_score (0 to 100), "
-                    "threat_level ('CRITICAL'|'HIGH'|'ELEVATED'|'LOW'), "
-                    "scene_description (detailed string), "
-                    "lighting_and_environment (string), "
-                    "forensic_tags (list of strings)."
-                )
 
                 response = client.messages.create(
                     model=CLAUDE_MODEL,
@@ -100,32 +206,61 @@ class ForensicAIAnalyzer:
                     parsed["sha256_hash"] = sha256_hash
                     return ImageAnalysisResponse(**parsed)
             except Exception as e:
-                print(f"[ForensicAI] Claude Image API notice (fallback used): {e}")
+                print(f"[ForensicAI] Claude Image API notice: {e}")
 
-        # Intelligent Forensic Fallback Mock
+        # 3. Intelligent Forensic Fallback Mock
         return cls._mock_image_analysis(filename, sha256_hash)
 
     @classmethod
     def analyze_audio(cls, file_path: str, filename: str) -> AudioAnalysisResponse:
         sha256_hash = compute_file_sha256(file_path)
-        client = get_claude_client()
 
-        # If audio transcription with Claude is requested via prompt context
+        prompt = (
+            f"As a forensic audio acoustic analyst, analyze surveillance audio file '{filename}'. "
+            "Produce a forensic audio breakdown with exact speech transcription, isolated speaker diarization, vocal stress evaluation, and threat detection. "
+            "Return ONLY valid JSON with keys: "
+            "full_transcript (string), "
+            "speakers_identified (int), "
+            "speaker_diarization (list of objects with speaker, start_time, end_time, text, acoustic_stress ['Panic'|'Agitation'|'Calm'|'Shouting']), "
+            "key_statements (list of strings), "
+            "acoustic_environment (string), "
+            "audio_threat_score (0-100 int), "
+            "threat_level ('CRITICAL'|'HIGH'|'ELEVATED'|'LOW'), "
+            "extracted_admissions_or_threats (list of strings)."
+        )
+
+        # 1. Try Google Gemini Audio (Native acoustic file ingestion!)
+        gemini_key = get_gemini_api_key()
+        if gemini_key and os.path.exists(file_path):
+            mime = "audio/wav"
+            if filename.lower().endswith(".mp3"):
+                mime = "audio/mp3"
+            elif filename.lower().endswith(".ogg"):
+                mime = "audio/ogg"
+            elif filename.lower().endswith(".flac"):
+                mime = "audio/flac"
+            elif filename.lower().endswith(".m4a") or filename.lower().endswith(".aac"):
+                mime = "audio/aac"
+
+            parsed = call_gemini_generate(
+                prompt=prompt,
+                media_path=file_path,
+                media_mime_type=mime,
+                json_mode=True,
+                system_instruction="You are a Law Enforcement Forensic Audio Acoustic Analyst."
+            )
+            if parsed:
+                try:
+                    parsed["filename"] = filename
+                    parsed["sha256_hash"] = sha256_hash
+                    return AudioAnalysisResponse(**parsed)
+                except Exception as e:
+                    print(f"[ForensicAI] Gemini Audio parse warning: {e}")
+
+        # 2. Try Anthropic Claude (Text Prompt Fallback)
+        client = get_claude_client()
         if client:
             try:
-                prompt = (
-                    f"As a forensic audio acoustic analyst, analyze surveillance audio file '{filename}'. "
-                    "Produce a forensic audio breakdown. Return ONLY valid JSON with: "
-                    "full_transcript (string), "
-                    "speakers_identified (int), "
-                    "speaker_diarization (list of objects with speaker, start_time, end_time, text, acoustic_stress), "
-                    "key_statements (list of strings), "
-                    "acoustic_environment (string), "
-                    "audio_threat_score (0-100 int), "
-                    "threat_level ('CRITICAL'|'HIGH'|'ELEVATED'|'LOW'), "
-                    "extracted_admissions_or_threats (list of strings)."
-                )
-
                 response = client.messages.create(
                     model=CLAUDE_MODEL,
                     max_tokens=1500,
@@ -138,30 +273,58 @@ class ForensicAIAnalyzer:
                     parsed["sha256_hash"] = sha256_hash
                     return AudioAnalysisResponse(**parsed)
             except Exception as e:
-                print(f"[ForensicAI] Claude Audio API notice (fallback used): {e}")
+                print(f"[ForensicAI] Claude Audio API notice: {e}")
 
+        # 3. Intelligent Forensic Fallback Mock
         return cls._mock_audio_analysis(filename, sha256_hash)
 
     @classmethod
     def analyze_video(cls, file_path: str, filename: str) -> VideoAnalysisResponse:
         sha256_hash = compute_file_sha256(file_path)
-        client = get_claude_client()
 
+        prompt = (
+            f"Analyze surveillance CCTV clip '{filename}'. Generate a chronological forensic video log. "
+            "Return ONLY valid JSON with keys: "
+            "duration_str (string e.g. '00:03:12'), "
+            "keyframe_count (int), "
+            "timeline_events (list of objects with timestamp_offset, scene_keyframe, action_detected, subjects_involved, anomaly_threat_score, cross_audio_sync_hint), "
+            "suspect_trajectory (string), "
+            "escape_route_observed (string), "
+            "video_threat_score (int 0-100), "
+            "threat_level ('CRITICAL'|'HIGH'|'ELEVATED'|'LOW'), "
+            "summary (string)."
+        )
+
+        # 1. Try Google Gemini Video (Native video file ingestion!)
+        gemini_key = get_gemini_api_key()
+        if gemini_key and os.path.exists(file_path):
+            mime = "video/mp4"
+            if filename.lower().endswith(".mov"):
+                mime = "video/quicktime"
+            elif filename.lower().endswith(".webm"):
+                mime = "video/webm"
+            elif filename.lower().endswith(".avi"):
+                mime = "video/x-msvideo"
+
+            parsed = call_gemini_generate(
+                prompt=prompt,
+                media_path=file_path,
+                media_mime_type=mime,
+                json_mode=True,
+                system_instruction="You are a Law Enforcement CCTV Forensic Telemetry Analyst."
+            )
+            if parsed:
+                try:
+                    parsed["filename"] = filename
+                    parsed["sha256_hash"] = sha256_hash
+                    return VideoAnalysisResponse(**parsed)
+                except Exception as e:
+                    print(f"[ForensicAI] Gemini Video parse warning: {e}")
+
+        # 2. Try Anthropic Claude (Text Prompt Fallback)
+        client = get_claude_client()
         if client:
             try:
-                prompt = (
-                    f"Analyze surveillance CCTV clip '{filename}'. Generate a chronological forensic video log. "
-                    "Return ONLY valid JSON with: "
-                    "duration_str (e.g. '00:03:12'), "
-                    "keyframe_count (int), "
-                    "timeline_events (list of objects with timestamp_offset, scene_keyframe, action_detected, subjects_involved, anomaly_threat_score, cross_audio_sync_hint), "
-                    "suspect_trajectory (string), "
-                    "escape_route_observed (string), "
-                    "video_threat_score (int 0-100), "
-                    "threat_level ('CRITICAL'|'HIGH'|'ELEVATED'|'LOW'), "
-                    "summary (string)."
-                )
-
                 response = client.messages.create(
                     model=CLAUDE_MODEL,
                     max_tokens=2048,
@@ -174,51 +337,68 @@ class ForensicAIAnalyzer:
                     parsed["sha256_hash"] = sha256_hash
                     return VideoAnalysisResponse(**parsed)
             except Exception as e:
-                print(f"[ForensicAI] Claude Video API notice (fallback used): {e}")
+                print(f"[ForensicAI] Claude Video API notice: {e}")
 
+        # 3. Intelligent Forensic Fallback Mock
         return cls._mock_video_analysis(filename, sha256_hash)
 
     @classmethod
     def chat_copilot(cls, query: str, case_context: Dict[str, Any]) -> ChatQueryResponse:
-        client = get_claude_client()
-
         context_summary = json.dumps(case_context, indent=2, default=str)
+        system_prompt = (
+            "You are 'CrimeVision Forensic Copilot'. "
+            "You assist sworn detectives and forensic scientists with digital evidence analysis. "
+            "Answer strictly based on case telemetry, chain of custody logs, weapon reports, and timelines provided. "
+            "Always cite specific timestamps, modalities (Image/Audio/Video), and evidence IDs. "
+            "Highlight inconsistencies or probable cause factors. Be concise, authoritative, and tactically precise."
+        )
 
-        if client:
-            try:
-                system_prompt = (
-                    "You are 'CrimeVision Forensic Copilot' powered by Claude 3.5 Sonnet. "
-                    "You assist sworn detectives and forensic scientists with digital evidence analysis. "
-                    "Answer strictly based on case telemetry, chain of custody logs, weapon reports, and timelines provided. "
-                    "Always cite specific timestamps, modalities (Image/Audio/Video), and evidence IDs. "
-                    "Highlight inconsistencies or probable cause factors. Be concise, authoritative, and tactically precise."
+        # 1. Try Google Gemini Chat
+        gemini_key = get_gemini_api_key()
+        if gemini_key:
+            user_prompt = f"Case Telemetry Context:\n{context_summary}\n\nInvestigator Query: {query}\n\nProvide an authoritative forensic briefing and suggest 3-4 specific follow-up questions."
+            parsed = call_gemini_generate(
+                prompt=user_prompt,
+                json_mode=False,
+                system_instruction=system_prompt
+            )
+            if parsed and "text" in parsed:
+                return ChatQueryResponse(
+                    response=parsed["text"],
+                    citations=["Gemini Multimodal Forensic Scan", "Master Fused Evidence Ledger", "Chain of Custody SHA-256"],
+                    suggested_followups=[
+                        "Detail weapon lethality and specifications",
+                        "Show suspect physical and clothing descriptions",
+                        "Generate formal sworn probable cause statement",
+                        "Verify audio-video timestamp synchronization"
+                    ]
                 )
 
+        # 2. Try Anthropic Claude Chat
+        client = get_claude_client()
+        if client:
+            try:
                 user_prompt = f"Case Telemetry Context:\n{context_summary}\n\nInvestigator Query: {query}"
-
                 response = client.messages.create(
                     model=CLAUDE_MODEL,
                     max_tokens=1500,
                     system=system_prompt,
                     messages=[{"role": "user", "content": user_prompt}]
                 )
-
                 reply_text = response.content[0].text
-                citations = ["CCTV CAM-04 (Frame #1420)", "Audio Dispatch Tape (CH-02)", "Ballistics / Weapon Scan"]
-                followups = [
-                    "What are the physical descriptions of all subjects?",
-                    "Check for timeline discrepancies between 911 audio and CCTV",
-                    "Generate a formal Affidavit Probable Cause statement"
-                ]
-
                 return ChatQueryResponse(
                     response=reply_text,
-                    citations=citations,
-                    suggested_followups=followups
+                    citations=["Claude 3.5 Multimodal Analysis", "Audio Dispatch Tape (CH-02)", "Ballistics / Weapon Scan"],
+                    suggested_followups=[
+                        "What are the physical descriptions of all subjects?",
+                        "Check for timeline discrepancies between 911 audio and CCTV",
+                        "Generate a formal Affidavit Probable Cause statement"
+                    ]
                 )
             except Exception as e:
                 print(f"[ForensicAI] Claude Copilot fallback active: {e}")
 
+        # 3. Intelligent Forensic Fallback Mock
         return cls._mock_copilot_response(query, case_context)
 
     # ============================================================

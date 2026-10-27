@@ -1726,7 +1726,7 @@ body {
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
         </svg>
-        <span>Claude 3.5 Sonnet</span>
+        <span>Gemini 1.5 Flash Multimodal</span>
       </div>
 
       <button class="btn-tactical" onclick="seedDemoCase()">
@@ -2042,7 +2042,7 @@ body {
           <div style="display: flex; align-items: center; gap: 0.5rem;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-purple)" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
             <h3 style="font-size: 1rem; font-weight: 700; color: #fff;">Forensic Intelligence Copilot</h3>
-            <span class="badge badge-purple" style="font-size: 0.65rem;">CLAUDE 3.5 ACTIVE</span>
+            <span class="badge badge-purple" style="font-size: 0.65rem;">GEMINI 1.5 FLASH ACTIVE</span>
           </div>
           <span style="font-size: 0.72rem; color: var(--text-muted);">Sworn Case Investigator Dialogue</span>
         </div>
@@ -2586,7 +2586,6 @@ function renderVideoResults(data) {
 """
 
 def get_dashboard_html() -> str:
-    # If unbundled public/index.html exists and is fresh, use it; otherwise use STANDALONE_HTML
     index_file = PUBLIC_DIR / "index.html"
     if index_file.exists():
         try:

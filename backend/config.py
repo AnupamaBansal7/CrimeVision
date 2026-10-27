@@ -50,10 +50,13 @@ if DB_PATH != REPO_DB and REPO_DB.exists() and not DB_PATH.exists():
         shutil.copy2(REPO_DB, DB_PATH)
     except Exception:
         pass
-# AI Configuration
+# AI Configuration (Gemini Multimodal Primary, Claude Secondary)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", os.getenv("GOOGLE_API_KEY", "")).strip()
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash").strip()
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "").strip()
-CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-3-5-sonnet-20241022")
+CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-3-5-sonnet-20241022").strip()
 
+ACTIVE_AI_ENGINE = "Gemini 1.5 Flash" if GEMINI_API_KEY else ("Claude 3.5 Sonnet" if ANTHROPIC_API_KEY else "Forensic Mock Engine")
 # App Metadata
 APP_NAME = "CrimeVision AI"
 APP_VERSION = "2.4.0-Enterprise"
