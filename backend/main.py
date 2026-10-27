@@ -22,6 +22,9 @@ from backend.config import (
 from backend.models import init_db
 from backend.routes import api_router
 
+# Guarantee database and tables are created immediately upon module load in serverless
+init_db()
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize SQLite schema and initial data
@@ -48,6 +51,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    import traceback
+    err_str = traceback.format_exc()
+    print(f"[Backend Error on {request.url.path}]: {err_str}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc), "error": type(exc).__name__, "path": str(request.url.path)}
+    )
 # Mount API Endpoints
 app.include_router(api_router)
 

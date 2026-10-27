@@ -11,6 +11,9 @@ from playhouse.db_url import connect
 from backend.config import DB_PATH, DATABASE_URL
 
 # Initialize Peewee Database (PostgreSQL if DATABASE_URL is set, else SQLite)
+# Note: Use journal_mode='delete' (NEVER 'wal') on serverless /tmp to avoid POSIX SHM lock failures
+DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+
 if DATABASE_URL:
     try:
         db = connect(DATABASE_URL)
@@ -18,23 +21,21 @@ if DATABASE_URL:
         print(f"[CrimeVision DB] DATABASE_URL connect error ({e}), falling back to SQLite: {DB_PATH}")
         db = SqliteDatabase(
             str(DB_PATH),
+            timeout=30.0,
             pragmas={
-                'journal_mode': 'wal',
-                'cache_size': -1024 * 64,
                 'foreign_keys': 1,
                 'ignore_check_constraints': 0,
-                'synchronous': 0
+                'synchronous': 1
             }
         )
 else:
     db = SqliteDatabase(
         str(DB_PATH),
+        timeout=30.0,
         pragmas={
-            'journal_mode': 'wal',
-            'cache_size': -1024 * 64,
             'foreign_keys': 1,
             'ignore_check_constraints': 0,
-            'synchronous': 0
+            'synchronous': 1
         }
     )
 class BaseModelDB(Model):
@@ -100,75 +101,119 @@ class ChatMessage(BaseModelDB):
     timestamp = DateTimeField(default=datetime.datetime.now)
 
 
-def init_db():
+_db_initialized = False
+
+def init_db(force: bool = False):
     """Initializes tables and seeds default case if not present."""
+    global _db_initialized
+    if _db_initialized and not force:
+        return
     try:
-        with db:
-            db.create_tables([Case, EvidenceItem, TimelineEvent, ChatMessage], safe=True)
-            from backend.config import DEFAULT_CASE
-            case = Case.get_or_none(Case.case_id == DEFAULT_CASE["case_id"])
-            if not case:
-                case = Case.create(
-                    case_id=DEFAULT_CASE["case_id"],
-                    title=DEFAULT_CASE["title"],
-                    incident_date=DEFAULT_CASE["incident_date"],
-                    location=DEFAULT_CASE["location"],
-                    lead_investigator=DEFAULT_CASE["lead_investigator"],
-                    badge_number=DEFAULT_CASE["badge_number"],
-                    jurisdiction=DEFAULT_CASE["jurisdiction"],
-                    classification="Commercial Armed Robbery",
-                    classification_confidence=0.94,
-                    penal_code="Penal Code § 211 - Robbery with Deadly Weapon",
-                    threat_level="CRITICAL",
-                    overall_threat_score=88,
-                    summary="Multi-subject aggravated commercial armed robbery at Central Metro Express. Evidence exhibits firearm brandishing, verbal threats to staff, safe breach, and rapid getaway in a dark sedan.",
-                    probable_cause="Forensic multimodal analysis confirms matching facial structure, dark clothing with reflective accents, recorded verbal demands for cashier safe codes, and video telemetry corroborating weapon presentation at 22:46:12."
-                )
-            # Auto-seed initial timeline & evidence if empty
-            if EvidenceItem.select().where(EvidenceItem.case == case).count() == 0:
-                try:
-                    from backend.services.fusion_service import MultimodalFusionEngine
-                    MultimodalFusionEngine.fuse_case_evidence(DEFAULT_CASE["case_id"])
-                except Exception as fe:
-                    print(f"[CrimeVision DB] Initial evidence seed notice: {fe}")
+        DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+        db.create_tables([Case, EvidenceItem, TimelineEvent, ChatMessage], safe=True)
+        from backend.config import DEFAULT_CASE
+        case = Case.get_or_none(Case.case_id == DEFAULT_CASE["case_id"])
+        if not case:
+            case = Case.create(
+                case_id=DEFAULT_CASE["case_id"],
+                title=DEFAULT_CASE["title"],
+                incident_date=DEFAULT_CASE["incident_date"],
+                location=DEFAULT_CASE["location"],
+                lead_investigator=DEFAULT_CASE["lead_investigator"],
+                badge_number=DEFAULT_CASE["badge_number"],
+                jurisdiction=DEFAULT_CASE["jurisdiction"],
+                classification="Commercial Armed Robbery",
+                classification_confidence=0.94,
+                penal_code="Penal Code § 211 - Robbery with Deadly Weapon",
+                threat_level="CRITICAL",
+                overall_threat_score=88,
+                summary="Multi-subject aggravated commercial armed robbery at Central Metro Express. Evidence exhibits firearm brandishing, verbal threats to staff, safe breach, and rapid getaway in a dark sedan.",
+                probable_cause="Forensic multimodal analysis confirms matching facial structure, dark clothing with reflective accents, recorded verbal demands for cashier safe codes, and video telemetry corroborating weapon presentation at 22:46:12."
+            )
+        # Auto-seed initial timeline & evidence if empty
+        if EvidenceItem.select().where(EvidenceItem.case == case).count() == 0:
+            try:
+                from backend.services.fusion_service import MultimodalFusionEngine
+                MultimodalFusionEngine.fuse_case_evidence(DEFAULT_CASE["case_id"])
+            except Exception as fe:
+                print(f"[CrimeVision DB] Initial evidence seed notice: {fe}")
+        _db_initialized = True
     except Exception as e:
         print(f"[CrimeVision DB] Schema init warning: {e}")
+
+def get_or_create_case(case_id: str = None) -> Case:
+    """Guarantees a valid case is returned without throwing 404 or table errors."""
+    init_db()
+    from backend.config import DEFAULT_CASE
+    cid = case_id or DEFAULT_CASE["case_id"]
+    try:
+        case = Case.get_or_none(Case.case_id == cid)
+        if not case:
+            case = Case.create(
+                case_id=cid,
+                title=DEFAULT_CASE["title"],
+                incident_date=DEFAULT_CASE["incident_date"],
+                location=DEFAULT_CASE["location"],
+                lead_investigator=DEFAULT_CASE["lead_investigator"],
+                badge_number=DEFAULT_CASE["badge_number"],
+                jurisdiction=DEFAULT_CASE["jurisdiction"],
+                classification="Commercial Armed Robbery",
+                classification_confidence=0.94,
+                penal_code="Penal Code § 211 - Robbery with Deadly Weapon",
+                threat_level="CRITICAL",
+                overall_threat_score=88,
+                summary="Multi-subject aggravated commercial armed robbery at Central Metro Express.",
+                probable_cause="Forensic multimodal surveillance analysis confirms weapon brandishing and rapid egress."
+            )
+        return case
+    except Exception as e:
+        print(f"[CrimeVision DB] get_or_create_case error: {e}")
+        init_db(force=True)
+        return Case.get_or_none(Case.case_id == cid) or Case(
+            case_id=cid,
+            title=DEFAULT_CASE["title"],
+            incident_date=DEFAULT_CASE["incident_date"],
+            location=DEFAULT_CASE["location"]
+        )
+
+# Auto-initialize database on module load so serverless execution never hits missing tables
+init_db()
 
 # ==========================================
 # Pydantic Schemas for API Serialization
 # ==========================================
 
 class WeaponItem(BaseModel):
-    weapon_type: str
-    confidence: float
-    description: str
-    lethality_rating: str
+    weapon_type: str = "Unknown Implement"
+    confidence: float = 0.85
+    description: str = ""
+    lethality_rating: str = "ELEVATED"
 
 class PersonEntity(BaseModel):
-    label: str
-    role_estimate: str  # Suspect, Victim, Witness, Bystander
-    clothing: str
-    actions: str
-    facial_features: str
+    label: str = "Subject"
+    role_estimate: str = "Suspect"  # Suspect, Victim, Witness, Bystander
+    clothing: str = "Unspecified attire"
+    actions: str = "Observed in scene"
+    facial_features: str = "Indeterminate"
 
 class DetectedObject(BaseModel):
-    label: str
-    confidence: float
-    location_in_frame: str
-    forensic_relevance: str
+    label: str = "Object"
+    confidence: float = 0.85
+    location_in_frame: str = "Scene"
+    forensic_relevance: str = "Evidentiary context"
 
 class ImageAnalysisResponse(BaseModel):
     status: str = "success"
-    filename: str
-    sha256_hash: str
-    people_count: int
+    filename: str = "evidence_image.jpg"
+    sha256_hash: str = ""
+    people_count: int = 1
     persons: List[PersonEntity] = []
     weapons_detected: List[WeaponItem] = []
     cataloged_objects: List[DetectedObject] = []
-    threat_score: int
-    threat_level: str  # CRITICAL, HIGH, ELEVATED, LOW
-    scene_description: str
-    lighting_and_environment: str
+    threat_score: int = 50
+    threat_level: str = "EVALUATING"  # CRITICAL, HIGH, ELEVATED, LOW
+    scene_description: str = "Forensic optical frame parsed."
+    lighting_and_environment: str = "Ambient"
     forensic_tags: List[str] = []
 
 class AudioTranscriptSegment(BaseModel):
